@@ -5,12 +5,135 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Bao Quoc</title>
   <style>
-    html, body { height: 100%; margin: 0; padding: 0; background:#000; }
-    canvas { position: absolute; width: 100%; height: 100%; display:block; cursor: pointer; }
+    html, body { 
+      height: 100%; 
+      margin: 0; 
+      padding: 0; 
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      font-family: 'Arial', sans-serif;
+      overflow: hidden;
+    }
+    
+    .container {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    canvas { 
+      position: absolute; 
+      width: 100%; 
+      height: 100%; 
+      display: block; 
+      cursor: pointer; 
+      z-index: 1;
+    }
+    
+    .heart-text {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 2;
+      text-align: center;
+      color: #fff;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+      pointer-events: none;
+    }
+    
+    .heart-text h1 {
+      font-size: 2.5rem;
+      margin: 0;
+      font-weight: bold;
+      background: linear-gradient(45deg, #ff6b9d, #ffc3e0);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: pulse 2s ease-in-out infinite;
+    }
+    
+    .heart-text p {
+      font-size: 1.2rem;
+      margin: 10px 0 0 0;
+      opacity: 0.9;
+    }
+    
+    .buttons-container {
+      position: absolute;
+      bottom: 15%;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 2;
+      display: flex;
+      gap: 20px;
+    }
+    
+    .heart-button {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 25px;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
+    
+    .btn-love {
+      background: linear-gradient(45deg, #ff6b9d, #ff8fab);
+      color: white;
+    }
+    
+    .btn-love:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(255, 107, 157, 0.4);
+    }
+    
+    .btn-surprise {
+      background: linear-gradient(45deg, #667eea, #764ba2);
+      color: white;
+    }
+    
+    .btn-surprise:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+    }
+    
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+    
+    @media (max-width: 768px) {
+      .heart-text h1 { font-size: 2rem; }
+      .heart-text p { font-size: 1rem; }
+      .buttons-container { flex-direction: column; gap: 15px; }
+      .heart-button { padding: 10px 20px; font-size: 0.9rem; }
+    }
   </style>
 </head>
 <body>
-  <canvas id="pinkboard"></canvas>
+  <div class="container">
+    <canvas id="pinkboard"></canvas>
+    
+    <div class="heart-text">
+      <h1>Bao Quoc</h1>
+      <p>💖 Yêu em nhiều lắm 💖</p>
+    </div>
+    
+    <div class="buttons-container">
+      <button class="heart-button btn-love" onclick="createHeartExplosion()">
+        💕 Yêu anh
+      </button>
+      <button class="heart-button btn-surprise" onclick="createSurprise()">
+        ✨ Bất ngờ
+      </button>
+    </div>
+  </div>
 
   <script>
   // ========= Settings =========
@@ -191,7 +314,45 @@
         }
       }
     });
+    
+    // Expose pool for button functions
+    window.heartPool = pool;
+    window.heartCanvas = canvas;
+    window.heartDpr = () => dpr;
   })(document.getElementById('pinkboard'));
+  
+  // Button functions
+  function createHeartExplosion() {
+    const pool = window.heartPool;
+    const canvas = window.heartCanvas;
+    const dpr = window.heartDpr();
+    
+    for (let j = 0; j < 10; j++) {
+      for (let i = 0; i < 100; i++) {
+        const pos = pointOnHeart(Math.PI - 2*Math.PI*Math.random());
+        const dir = pos.clone().length(settings.particles.velocity * (0.3 + Math.random() * 0.7));
+        pool.add(canvas.width/dpr/2 + pos.x, canvas.height/dpr/2 - pos.y, dir.x, -dir.y);
+      }
+    }
+  }
+  
+  function createSurprise() {
+    const pool = window.heartPool;
+    const canvas = window.heartCanvas;
+    const dpr = window.heartDpr();
+    
+    // Tạo hiệu ứng tim từ nhiều điểm khác nhau
+    for (let angle = 0; angle < Math.PI * 2; angle += Math.PI / 8) {
+      for (let i = 0; i < 50; i++) {
+        const pos = pointOnHeart(Math.PI - 2*Math.PI*Math.random());
+        const dir = new Point(
+          Math.cos(angle) * settings.particles.velocity * 0.8,
+          Math.sin(angle) * settings.particles.velocity * 0.8
+        );
+        pool.add(canvas.width/dpr/2 + pos.x, canvas.height/dpr/2 - pos.y, dir.x, dir.y);
+      }
+    }
+  }
   </script>
 </body>
 </html>
