@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Bao Quoc</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg: #0f1115;
+      --fg: #e8eaed;
+      --muted: #b6bdc6;
+      --shade1: #8b9096;
+      --shade2: #a3a8ae;
+      --shade3: #c1c7ce;
+      --shade4: #e1e6ea;
+      --accent: #b3ff00;
+    }
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: "Space Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      background: radial-gradient(1200px 700px at 30% 10%, rgba(255,255,255,0.04), transparent 60%), var(--bg);
+      color: var(--fg);
+      text-rendering: optimizeLegibility;
+      -webkit-font-smoothing: antialiased;
+      overflow:hidden;
+    }
+
+    body::after{
+      content:"";
+      position:fixed; inset:0; pointer-events:none;
+      background:repeating-linear-gradient(to bottom, rgba(255,255,255,0.04), rgba(255,255,255,0.04) 1px, transparent 2px, transparent 3px);
+      mix-blend-mode:soft-light; opacity:.25;
+    }
+
+    .container {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    canvas {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      display: block;
+      cursor: pointer;
+      z-index: 1;
+    }
+
+    .heart-text {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 2;
+      text-align: center;
+      color: #fff;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+      pointer-events: none;
+    }
+
+    .heart-text h1 {
+      font-family: "Press Start 2P", monospace;
+      font-size: 2.5rem;
+      margin: 0;
+      font-weight: bold;
+      background: linear-gradient(45deg, #ff6b9d, #ffc3e0);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    .heart-text p {
+      font-size: 1.2rem;
+      margin: 10px 0 0 0;
+      opacity: 0.9;
+    }
+
+    .buttons-container {
+      position: absolute;
+      bottom: 15%;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 2;
+      display: flex;
+      gap: 12px;
+    }
+
+    .btn{
+      border: 1px solid rgba(255,255,255,.12);
+      padding: 12px 16px; border-radius: 12px; font-weight: 700; letter-spacing:.04em;
+      background: rgba(255,255,255,.02); color: var(--fg);
+      text-decoration:none; display:inline-flex; gap:.6ch; align-items:center;
+      transition: transform .08s ease, background .2s ease, border-color .2s ease;
+      cursor:pointer;
+    }
+    .btn:hover{ background: rgba(255,255,255,.05); border-color: rgba(255,255,255,.24); transform: translateY(-1px); }
+    .btn.primary{ background: linear-gradient(180deg, rgba(179,255,0,.16), rgba(179,255,0,.08)); border-color: rgba(179,255,0,.35); }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+
+    @media (max-width: 768px) {
+      .heart-text h1 { font-size: 2rem; }
+      .heart-text p { font-size: 1rem; }
+      .buttons-container { flex-direction: column; gap: 15px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <canvas id="pinkboard"></canvas>
+
+    <div class="heart-text">
+      <h1>----</h1>
+      <p>💖----- 💖</p>
+    </div>
+
+    <div class="buttons-container">
+      <button class="btn primary" onclick="createHeartExplosion()">Login in your terminal ▸</button>
+      <button class="btn" onclick="createSurprise()">ĐỪNG BẤM VÀO ĐÂY</button>
+    </div>
+  </div>
+
+  <script>
+  // ========= Settings =========
+  const settings = {
+    particles: {
+      length: 500,     // maximum amount of particles
+      duration: 2,     // particle lifetime (seconds)
+      velocity: 100,   // initial velocity (px/sec)
+      effect: -0.75,   // acceleration factor (negative pulls back)
+      size: 30         // particle sprite size (px)
+    }
+  };
+
+  // ========= Utilities =========
+  class Point {
+    constructor(x = 0, y = 0) { this.x = x; this.y = y; }
+    clone() { return new Point(this.x, this.y); }
+    length(len) {
+      if (len === undefined) return Math.hypot(this.x, this.y);
+      this.normalize(); this.x *= len; this.y *= len; return this;
+    }
+    normalize() { const l = this.length(); if (l) { this.x /= l; this.y /= l; } return this; }
+  }
+
+  class Particle {
+    constructor() {
+      this.position = new Point();
+      this.velocity = new Point();
+      this.acceleration = new Point();
+      this.age = 0;
+    }
+    initialize(x, y, dx, dy) {
+      this.position.x = x; this.position.y = y;
+      this.velocity.x = dx; this.velocity.y = dy;
+      this.acceleration.x = dx * settings.particles.effect;
+      this.acceleration.y = dy * settings.particles.effect;
+      this.age = 0;
+    }
+    update(dt) {
+      this.position.x += this.velocity.x * dt;
+      this.position.y += this.velocity.y * dt;
+      this.velocity.x += this.acceleration.x * dt;
+      this.velocity.y += this.acceleration.y * dt;
+      this.age += dt;
+    }
+    draw(ctx, image) {
+      const ease = t => (--t) * t * t + 1; // cubic ease-out
+      const life = this.age / settings.particles.duration;
+      const size = image.width * ease(life);
+      ctx.globalAlpha = 1 - life;
+      ctx.drawImage(image, this.position.x - size/2, this.position.y - size/2, size, size);
+    }
+  }
+
+  class ParticlePool {
+    constructor(length) {
+      this.particles = new Array(length);
+      for (let i = 0; i < length; i++) this.particles[i] = new Particle();
+      this.firstActive = 0; this.firstFree = 0; this.duration = settings.particles.duration;
+    }
+    add(x, y, dx, dy) {
+      this.particles[this.firstFree].initialize(x, y, dx, dy);
+      this.firstFree = (this.firstFree + 1) % this.particles.length;
+      if (this.firstActive === this.firstFree)
+        this.firstActive = (this.firstActive + 1) % this.particles.length;
+    }
+    update(dt) {
+      if (this.firstActive < this.firstFree) {
+        for (let i = this.firstActive; i < this.firstFree; i++) this.particles[i].update(dt);
+      } else {
+        for (let i = this.firstActive; i < this.particles.length; i++) this.particles[i].update(dt);
+        for (let i = 0; i < this.firstFree; i++) this.particles[i].update(dt);
+      }
+      while (this.firstActive !== this.firstFree && this.particles[this.firstActive].age >= this.duration) {
+        this.firstActive = (this.firstActive + 1) % this.particles.length;
+      }
+    }
+    draw(ctx, image) {
+      if (this.firstActive < this.firstFree) {
+        for (let i = this.firstActive; i < this.firstFree; i++) this.particles[i].draw(ctx, image);
+      } else {
+        for (let i = this.firstActive; i < this.particles.length; i++) this.particles[i].draw(ctx, image);
+        for (let i = 0; i < this.firstFree; i++) this.particles[i].draw(ctx, image);
+      }
+    }
+  }
+
+  // ========= Heart math =========
+  function pointOnHeart(t) {
+    // -PI <= t <= PI
+    return new Point(
+      160 * Math.pow(Math.sin(t), 3),
+      130 * Math.cos(t) - 50 * Math.cos(2*t) - 20 * Math.cos(3*t) - 10 * Math.cos(4*t) + 25
+    );
+  }
+
+  // Create particle sprite
+  function createHeartSprite(size, color = '#ea80b0') {
+    const c = document.createElement('canvas');
+    c.width = c.height = size;
+    const g = c.getContext('2d');
+
+    const to = t => {
+      const p = pointOnHeart(t);
+      p.x = size/2 + p.x * size / 350;
+      p.y = size/2 - p.y * size / 350;
+      return p;
+    };
+
+    g.beginPath();
+    let t = -Math.PI;
+    let p = to(t);
+    g.moveTo(p.x, p.y);
+    while (t < Math.PI) { t += 0.01; p = to(t); g.lineTo(p.x, p.y); }
+    g.closePath();
+    const grad = g.createRadialGradient(size/2, size/2, size*0.1, size/2, size/2, size*0.6);
+    grad.addColorStop(0, color);
+    grad.addColorStop(1, '#ff4d6d');
+    g.fillStyle = grad;
+    g.shadowColor = color;
+    g.shadowBlur = 20;
+    g.fill();
+
+    const img = new Image();
+    img.src = c.toDataURL();
+    return img;
+  }
+
+  (function boot(canvas){
+    const ctx = canvas.getContext('2d');
+    const pool = new ParticlePool(settings.particles.length);
+    const rate = settings.particles.length / settings.particles.duration; // particles/sec
+    const sprite = createHeartSprite(settings.particles.size, '#ea80b0');
+
+    // DPR aware resize
+    let dpr = 1;
+    function resize(){
+      dpr = Math.min(2, window.devicePixelRatio || 1);
+      const w = canvas.clientWidth, h = canvas.clientHeight;
+      canvas.width = Math.floor(w * dpr);
+      canvas.height = Math.floor(h * dpr);
+      ctx.setTransform(1,0,0,1,0,0);
+      ctx.scale(dpr, dpr);
+    }
+    window.addEventListener('resize', resize); resize();
+
+    let time;
+    function render(){
+      requestAnimationFrame(render);
+      const now = performance.now() / 1000;
+      const dt = Math.min(0.033, now - (time || now));
+      time = now;
+
+      ctx.clearRect(0,0,canvas.width/dpr, canvas.height/dpr);
+
+      // spawn new particles
+      const amount = rate * dt;
+      for (let i = 0; i < amount; i++) {
+        const pos = pointOnHeart(Math.PI - 2*Math.PI*Math.random());
+        const dir = pos.clone().length(settings.particles.velocity);
+        pool.add(canvas.width/dpr/2 + pos.x, canvas.height/dpr/2 - pos.y, dir.x, -dir.y);
+      }
+
+      pool.update(dt);
+      ctx.globalCompositeOperation = 'lighter';
+      pool.draw(ctx, sprite);
+      ctx.globalCompositeOperation = 'source-over';
+    }
+    render();
+
+    // === Click event: tạo thêm nhiều trái tim ở trong ===
+    canvas.addEventListener('click', () => {
+      for (let j = 0; j < 5; j++) { // số lượng tim nhỏ hơn thêm
+        for (let i = 0; i < 80; i++) {
+          const pos = pointOnHeart(Math.PI - 2*Math.PI*Math.random());
+          const dir = pos.clone().length(settings.particles.velocity * 0.5);
+          pool.add(canvas.width/dpr/2 + pos.x, canvas.height/dpr/2 - pos.y, dir.x, -dir.y);
+        }
+      }
+    });
+
+    // Expose pool for button functions
+    window.heartPool = pool;
+    window.heartCanvas = canvas;
+    window.heartDpr = () => dpr;
+  })(document.getElementById('pinkboard'));
+
+  // Button functions
+  function createHeartExplosion() {
+    const pool = window.heartPool;
+    const canvas = window.heartCanvas;
+    const dpr = window.heartDpr();
+
+    for (let j = 0; j < 10; j++) {
+      for (let i = 0; i < 100; i++) {
+        const pos = pointOnHeart(Math.PI - 2*Math.PI*Math.random());
+        const dir = pos.clone().length(settings.particles.velocity * (0.3 + Math.random() * 0.7));
+        pool.add(canvas.width/dpr/2 + pos.x, canvas.height/dpr/2 - pos.y, dir.x, -dir.y);
+      }
+    }
+  }
+
+  function createSurprise() {
+    const pool = window.heartPool;
+    const canvas = window.heartCanvas;
+    const dpr = window.heartDpr();
+
+    // Tạo hiệu ứng tim từ nhiều điểm khác nhau
+    for (let angle = 0; angle < Math.PI * 2; angle += Math.PI / 8) {
+      for (let i = 0; i < 50; i++) {
+        const pos = pointOnHeart(Math.PI - 2*Math.PI*Math.random());
+        const dir = new Point(
+          Math.cos(angle) * settings.particles.velocity * 0.8,
+          Math.sin(angle) * settings.particles.velocity * 0.8
+        );
+        pool.add(canvas.width/dpr/2 + pos.x, canvas.height/dpr/2 - pos.y, dir.x, dir.y);
+      }
+    }
+  }
+  </script>
+</body>
+</html>
