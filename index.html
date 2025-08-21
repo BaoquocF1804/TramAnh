@@ -3,6 +3,9 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#0f1115">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>OpenCode – Terminal Hero</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -26,7 +29,10 @@
       color: var(--fg);
       text-rendering: optimizeLegibility;
       -webkit-font-smoothing: antialiased;
-      overflow: hidden;
+      overflow-x: hidden;
+      min-height: 100vh;
+      min-height: 100dvh; /* Dynamic viewport height for mobile */
+      touch-action: manipulation; /* Prevent zoom on double tap */
     }
 
     /* Subtle CRT feel */
@@ -38,26 +44,34 @@
     }
 
     .frame{
-      height:100%; display:grid; place-items:center; padding: 6vw 5vw;
+      min-height: 100vh;
+      min-height: 100dvh;
+      display: grid; 
+      place-items: center; 
+      padding: clamp(20px, 6vw, 60px) clamp(16px, 5vw, 50px);
+      box-sizing: border-box;
     }
 
     .card{
-      width:min(1100px, 92vw);
+      width: min(1100px, 100%);
+      max-width: 92vw;
       border-radius: 18px;
       background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
       border: 1px solid rgba(255,255,255,.08);
       box-shadow: 0 20px 80px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.04);
-      padding: clamp(28px, 6vw, 64px);
+      padding: clamp(20px, 5vw, 64px);
+      box-sizing: border-box;
     }
 
     .logo{
       display:flex; align-items: baseline; flex-wrap:wrap; gap: .35ch;
       font-family: "Press Start 2P", monospace;
-      font-size: clamp(34px, 9vw, 72px);
+      font-size: clamp(24px, 8vw, 72px);
       line-height: 1.05; letter-spacing: .08em;
       text-transform: uppercase;
       text-shadow: 0 0 12px rgba(255,255,255,.06), 0 0 24px rgba(179,255,0,.04);
       user-select: none;
+      word-break: break-word;
     }
     .logo .g1{ color: var(--shade1); }
     .logo .g2{ color: var(--shade2); }
@@ -67,35 +81,110 @@
 
     .tagline{
       margin-top: 16px;
-      font-size: clamp(10px, 1.9vw, 14px);
+      font-size: clamp(11px, 2.5vw, 14px);
       letter-spacing: .12em;
       color: var(--muted);
       text-transform: uppercase;
       white-space: pre-wrap;
+      word-break: break-word;
     }
 
-    .actions{ margin-top: clamp(24px,3.2vw,36px); display:flex; gap:12px; flex-wrap:wrap }
+    .actions{ 
+      margin-top: clamp(20px, 4vw, 36px); 
+      display: flex; 
+      gap: 12px; 
+      flex-wrap: wrap;
+      justify-content: center;
+    }
     .btn{ 
       border: 1px solid rgba(255,255,255,.12);
-      padding: 12px 16px; border-radius: 12px; font-weight: 700; letter-spacing:.04em;
+      padding: clamp(10px, 2.5vw, 12px) clamp(12px, 3vw, 16px); 
+      border-radius: 12px; 
+      font-weight: 700; 
+      letter-spacing: .04em;
       background: rgba(255,255,255,.02); color: var(--fg);
-      text-decoration:none; display:inline-flex; gap:.6ch; align-items:center;
+      text-decoration: none; 
+      display: inline-flex; 
+      gap: .6ch; 
+      align-items: center;
       transition: transform .08s ease, background .2s ease, border-color .2s ease;
+      font-size: clamp(12px, 2.2vw, 14px);
+      min-height: 44px; /* Touch target size */
+      justify-content: center;
+      text-align: center;
     }
-    .btn:hover{ background: rgba(255,255,255,.05); border-color: rgba(255,255,255,.24); transform: translateY(-1px); }
+    .btn:hover, .btn:focus{ 
+      background: rgba(255,255,255,.05); 
+      border-color: rgba(255,255,255,.24); 
+      transform: translateY(-1px); 
+      outline: none;
+    }
+    .btn:active{ transform: translateY(0); }
     .btn.primary{ background: linear-gradient(180deg, rgba(179,255,0,.16), rgba(179,255,0,.08)); border-color: rgba(179,255,0,.35); }
 
     .terminal-line{
-      margin-top: 26px; font-size: clamp(12px, 2.2vw, 16px); color:#9fb29f
+      margin-top: clamp(20px, 4vw, 26px); 
+      font-size: clamp(13px, 3vw, 16px); 
+      color: #9fb29f;
+      word-break: break-word;
+      line-height: 1.4;
     }
     .caret{ display:inline-block; width:.62ch; height:1.05em; background: var(--accent); vertical-align:-3px; margin-left:.25ch; animation: blink 1s steps(1,end) infinite }
     @keyframes blink{ 50%{ opacity:0 } }
 
     /* Optional border to mimic the screenshot edge */
-    .window-edge{ position:absolute; inset:10px; border:1px solid rgba(255,255,255,.06); border-radius: 14px; pointer-events:none }
+    .window-edge{ 
+      position: absolute; 
+      inset: clamp(8px, 2vw, 10px); 
+      border: 1px solid rgba(255,255,255,.06); 
+      border-radius: 14px; 
+      pointer-events: none;
+    }
 
-    @media (max-width: 420px){
-      .logo{ letter-spacing:.04em }
+    /* Mobile specific optimizations */
+    @media (max-width: 480px){
+      .logo{ 
+        letter-spacing: .04em;
+        justify-content: center;
+        text-align: center;
+      }
+      .actions{
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .btn{
+        width: 100%;
+        max-width: 280px;
+        margin: 0 auto;
+      }
+      .card{
+        margin: 0 8px;
+        max-width: calc(100vw - 16px);
+      }
+      .terminal-line{
+        text-align: center;
+        font-size: 14px;
+      }
+    }
+
+    /* Landscape mobile */
+    @media (max-height: 500px) and (orientation: landscape){
+      .frame{
+        padding: 20px 16px;
+      }
+      .card{
+        padding: 20px;
+      }
+      .logo{
+        font-size: clamp(20px, 6vw, 48px);
+      }
+    }
+
+    /* High DPI displays */
+    @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi){
+      body::after{
+        opacity: .15;
+      }
     }
   </style>
 </head>
@@ -110,7 +199,7 @@
       <!-- Optional CTA to make the hero feel like a real landing page -->
       <div class="actions" role="group" aria-label="actions">
         <a class="btn primary" href="#">Login in your terminal ▸</a>
-        <a class="btn" href="https://www.youtube.com/watch?v=dQw4w9WgXcQ" >ĐỪNG BẤM VÀO ĐÂY</a>
+        <a class="btn" href="https://www.youtube.com/watch?v=dQw4w9WgXcQ" target="_blank" rel="noopener">ĐỪNG BẤM VÀO ĐÂY</a>
       </div>
 
       <div class="terminal-line">$ NHẬP MÃ: <span id="code-input"></span><span class="caret" aria-hidden="true"></span></div>
@@ -121,6 +210,11 @@
     const codeSpan = document.getElementById('code-input');
     const secret = 'panda';
     let buffer = '';
+    
+    // Prevent zoom on iOS
+    document.addEventListener('gesturestart', function (e) {
+      e.preventDefault();
+    });
 
     window.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
@@ -136,6 +230,18 @@
         buffer += e.key;
         codeSpan.textContent = buffer;
       }
+    });
+
+    // Mobile virtual keyboard support
+    const hiddenInput = document.createElement('input');
+    hiddenInput.style.position = 'absolute';
+    hiddenInput.style.left = '-9999px';
+    hiddenInput.style.opacity = '0';
+    document.body.appendChild(hiddenInput);
+
+    // Focus hidden input on mobile to trigger keyboard
+    document.addEventListener('touchstart', () => {
+      hiddenInput.focus();
     });
   </script>
 </body>
