@@ -198,16 +198,22 @@
 
       <!-- Optional CTA to make the hero feel like a real landing page -->
       <div class="actions" role="group" aria-label="actions">
-        <a class="btn primary" href="#">Login in your terminal ▸</a>
+        <button class="btn primary" id="submitBtn" disabled>Login in your terminal ▸</button>
         <a class="btn" href="https://www.youtube.com/watch?v=dQw4w9WgXcQ" target="_blank" rel="noopener">ĐỪNG BẤM VÀO ĐÂY</a>
       </div>
 
       <div class="terminal-line">$ NHẬP MÃ: <span id="code-input"></span><span class="caret" aria-hidden="true"></span></div>
+      
+      <!-- Hidden input for mobile keyboard -->
+      <input type="text" id="hiddenInput" style="position: absolute; left: -9999px; opacity: 0; pointer-events: none;" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+      
       <div class="window-edge" aria-hidden="true"></div>
     </div>
   </div>
   <script>
     const codeSpan = document.getElementById('code-input');
+    const submitBtn = document.getElementById('submitBtn');
+    const hiddenInput = document.getElementById('hiddenInput');
     const secret = 'panda';
     let buffer = '';
     
@@ -216,33 +222,109 @@
       e.preventDefault();
     });
 
+    // Update submit button state
+    function updateSubmitButton() {
+      if (buffer.toLowerCase() === secret) {
+        submitBtn.disabled = false;
+        submitBtn.style.opacity = '1';
+        submitBtn.style.cursor = 'pointer';
+      } else {
+        submitBtn.disabled = true;
+        submitBtn.style.opacity = '0.6';
+        submitBtn.style.cursor = 'not-allowed';
+      }
+    }
+
+    // Handle submit button click
+    submitBtn.addEventListener('click', () => {
+      if (buffer.toLowerCase() === secret) {
+        window.location.href = 'heart.html';
+      }
+    });
+
+    // Desktop keyboard events
     window.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
         if (buffer.toLowerCase() === secret) {
           window.location.href = 'heart.html';
         }
-        buffer = '';
-        codeSpan.textContent = '';
+        // Don't clear on Enter, let user see the result
       } else if (e.key === 'Backspace') {
         buffer = buffer.slice(0, -1);
         codeSpan.textContent = buffer;
+        updateSubmitButton();
       } else if (e.key.length === 1) {
         buffer += e.key;
         codeSpan.textContent = buffer;
+        updateSubmitButton();
       }
     });
 
-    // Mobile virtual keyboard support
-    const hiddenInput = document.createElement('input');
-    hiddenInput.style.position = 'absolute';
-    hiddenInput.style.left = '-9999px';
-    hiddenInput.style.opacity = '0';
-    document.body.appendChild(hiddenInput);
+    // Mobile input handling
+    hiddenInput.addEventListener('input', (e) => {
+      buffer = e.target.value;
+      codeSpan.textContent = buffer;
+      updateSubmitButton();
+    });
 
-    // Focus hidden input on mobile to trigger keyboard
-    document.addEventListener('touchstart', () => {
+    // Focus hidden input when user taps anywhere on the card
+    const card = document.querySelector('.card');
+    const terminalLine = document.querySelector('.terminal-line');
+    
+    function focusInput() {
+      hiddenInput.focus();
+      // Prevent default to avoid scrolling
+      setTimeout(() => {
+        hiddenInput.focus();
+      }, 100);
+    }
+
+    // Touch events for mobile
+    card.addEventListener('touchstart', (e) => {
+      // Don't focus if touching a button
+      if (e.target.closest('.btn')) return;
+      focusInput();
+    });
+
+    terminalLine.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      focusInput();
+    });
+
+    // Click events for desktop
+    terminalLine.addEventListener('click', () => {
       hiddenInput.focus();
     });
+
+    // Auto-focus on page load for better UX
+    window.addEventListener('load', () => {
+      // Small delay to ensure everything is rendered
+      setTimeout(() => {
+        if (window.innerWidth <= 768) {
+          focusInput();
+        }
+      }, 500);
+    });
+
+    // Handle virtual keyboard visibility on mobile
+    let initialViewportHeight = window.innerHeight;
+    window.addEventListener('resize', () => {
+      // Detect if virtual keyboard is open (viewport height decreased significantly)
+      const currentHeight = window.innerHeight;
+      const heightDiff = initialViewportHeight - currentHeight;
+      
+      if (heightDiff > 150) {
+        // Virtual keyboard is likely open
+        document.body.style.height = currentHeight + 'px';
+      } else {
+        // Virtual keyboard is likely closed
+        document.body.style.height = '';
+        initialViewportHeight = currentHeight;
+      }
+    });
+
+    // Initialize button state
+    updateSubmitButton();
   </script>
 </body>
 </html>
