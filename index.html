@@ -186,6 +186,26 @@
         opacity: .15;
       }
     }
+
+    .tic-tac-toe{
+      margin-top:20px;
+      display:grid;
+      grid-template-columns:repeat(3,60px);
+      gap:4px;
+      justify-content:center;
+    }
+    .ttt-cell{
+      width:60px;
+      height:60px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:32px;
+      background:rgba(255,255,255,.05);
+      border:1px solid rgba(255,255,255,.2);
+      cursor:pointer;
+      user-select:none;
+    }
   </style>
 </head>
 <body>
@@ -200,10 +220,23 @@
       <div class="actions" role="group" aria-label="actions">
         <button class="btn primary" id="submitBtn" disabled>Login in your terminal ▸</button>
         <a class="btn" href="https://www.youtube.com/watch?v=dQw4w9WgXcQ" target="_blank" rel="noopener">ĐỪNG BẤM VÀO ĐÂY</a>
+        <button class="btn" id="gameBtn">🎮 Chơi Caro</button>
+      </div>
+
+      <div id="game-container" class="tic-tac-toe" aria-label="tic tac toe game" style="display:none;">
+        <div class="ttt-cell" id="cell-0" data-index="0"></div>
+        <div class="ttt-cell" id="cell-1" data-index="1"></div>
+        <div class="ttt-cell" id="cell-2" data-index="2"></div>
+        <div class="ttt-cell" id="cell-3" data-index="3"></div>
+        <div class="ttt-cell" id="cell-4" data-index="4"></div>
+        <div class="ttt-cell" id="cell-5" data-index="5"></div>
+        <div class="ttt-cell" id="cell-6" data-index="6"></div>
+        <div class="ttt-cell" id="cell-7" data-index="7"></div>
+        <div class="ttt-cell" id="cell-8" data-index="8"></div>
       </div>
 
       <div class="terminal-line">$ NHẬP MÃ: <span id="code-input"></span><span class="caret" aria-hidden="true"></span></div>
-      
+
       <!-- Hidden input for mobile keyboard -->
       <input type="text" id="hiddenInput" style="position: absolute; left: -9999px; opacity: 0; pointer-events: none;" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
       
@@ -214,6 +247,8 @@
     const codeSpan = document.getElementById('code-input');
     const submitBtn = document.getElementById('submitBtn');
     const hiddenInput = document.getElementById('hiddenInput');
+    const gameBtn = document.getElementById('gameBtn');
+    const gameContainer = document.getElementById('game-container');
     const secret = 'panda';
     let buffer = '';
     
@@ -325,6 +360,55 @@
 
     // Initialize button state
     updateSubmitButton();
+
+    // Tic Tac Toe game logic
+    const board = Array(9).fill('');
+    let currentPlayer = 'X';
+
+    function renderBoard(){
+      board.forEach((val, idx) => {
+        document.getElementById('cell-' + idx).textContent = val;
+      });
+    }
+
+    function resetBoard(){
+      for(let i=0;i<9;i++) board[i]='';
+      currentPlayer='X';
+      renderBoard();
+    }
+
+    function checkWinner(){
+      const combos=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+      for(const [a,b,c] of combos){
+        if(board[a] && board[a]===board[b] && board[a]===board[c]) return board[a];
+      }
+      return board.every(Boolean)?'draw':null;
+    }
+
+    function handleCellClick(e){
+      const idx=Number(e.target.dataset.index);
+      if(board[idx]||checkWinner()) return;
+      board[idx]=currentPlayer;
+      currentPlayer=currentPlayer==='X'?'O':'X';
+      renderBoard();
+      const winner=checkWinner();
+      if(winner){
+        setTimeout(()=>{
+          alert(winner==='draw'? 'Hòa!': winner + ' thắng!');
+          resetBoard();
+        },10);
+      }
+    }
+
+    document.querySelectorAll('.ttt-cell').forEach(cell=>{
+      cell.addEventListener('click', handleCellClick);
+    });
+
+    gameBtn.addEventListener('click', ()=>{
+      const show=gameContainer.style.display==='none';
+      gameContainer.style.display=show?'grid':'none';
+      if(show) resetBoard();
+    });
   </script>
 </body>
 </html>
