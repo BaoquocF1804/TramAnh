@@ -335,12 +335,112 @@
         opacity: .15;
       }
     }
+
+    /* ===== Bucket List Panel ===== */
+    .bucket{
+      position: fixed;
+      right: clamp(12px, 3vw, 24px);
+      top: clamp(12px, 3vw, 24px);
+      bottom: clamp(12px, 3vw, 24px);
+      width: min(460px, calc(100vw - 48px));
+      max-width: calc(100vw - 24px);
+      z-index: 5;
+      display: flex; flex-direction: column;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: linear-gradient(180deg, rgba(20,22,28,0.92), rgba(16,18,23,0.92));
+      backdrop-filter: blur(8px);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.06);
+      overflow: hidden;
+
+      transform: translateX(120%);
+      opacity: 0;
+      pointer-events: none;
+      transition: transform .35s ease, opacity .35s ease;
+    }
+    .bucket.open{ transform: translateX(0); opacity: 1; pointer-events: auto; }
+
+    .bucket__topbar{
+      display: flex; align-items: center; gap: 8px;
+      padding: clamp(8px, 2vw, 10px) clamp(10px, 2.5vw, 12px);
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+      user-select: none;
+      flex-shrink: 0;
+    }
+    .bucket__title{ font-size: clamp(12px, 2.2vw, 14px); color: var(--shade3); letter-spacing: .02em; }
+    .bucket__spacer{ flex: 1; }
+    .bucket__close{
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.05);
+      color: var(--shade4);
+      font-size: clamp(10px, 2vw, 12px);
+      border-radius: 8px;
+      padding: clamp(3px, 1vw, 4px) clamp(6px, 1.5vw, 8px);
+      min-width: 24px; min-height: 24px; cursor: pointer;
+    }
+
+    .bucket__body{ 
+      flex: 1; overflow: auto; 
+      padding: clamp(12px, 3vw, 16px); 
+      color: var(--shade4); 
+      font-size: clamp(12px, 2.4vw, 14px);
+    }
+
+    /* Progress */
+    .progress{ margin-bottom: 12px; }
+    .progress__label{ color: var(--shade3); margin-bottom: 8px; font-size: 12px; }
+    .progress__bar{ width: 100%; height: 10px; background: rgba(255,255,255,.08); border-radius: 999px; overflow: hidden; }
+    .progress__bar > #blBar{ height: 100%; width: 0%; background: linear-gradient(90deg, var(--accent), #8bff80); }
+
+    /* Form */
+    .bl-form{ display: grid; grid-template-columns: 1fr max-content max-content; gap: 8px; align-items: center; margin-bottom: 12px; }
+    .bl-form input{
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.12);
+      color: var(--fg);
+      border-radius: 10px;
+      padding: 10px 12px;
+      outline: none;
+    }
+    .bl-form input:focus{ border-color: rgba(255,255,255,.28); }
+
+    /* Filters */
+    .bl-filters{ display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+
+    /* List */
+    .bl-list{ list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+    .bl-item{
+      display: grid; grid-template-columns: 28px 1fr max-content; gap: 8px; align-items: center;
+      padding: 10px; border: 1px solid rgba(255,255,255,.10); border-radius: 12px;
+      background: rgba(255,255,255,.03);
+    }
+    .bl-item__check{
+      width: 20px; height: 20px; cursor: pointer;
+      accent-color: var(--accent);
+    }
+    .bl-item__title{ line-height: 1.35; }
+    .bl-item__meta{ font-size: 12px; color: var(--shade2); margin-top: 2px; }
+    .bl-item.done .bl-item__title{ text-decoration: line-through; opacity: .7; }
+    .bl-item__del{
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.05);
+      color: var(--shade4);
+      font-size: 12px; border-radius: 8px; padding: 6px 8px; cursor: pointer;
+    }
+
+    /* Mobile tweak: panel full width */
+    @media (max-width: 768px){
+      .bucket{ left: 12px; right: 12px; width: auto; }
+      .bl-form{ grid-template-columns: 1fr 1fr max-content; }
+    }
   </style>
 </head>
 <body>
   <div class="app">
-    <!-- Backdrop mờ khi mở terminal -->
+    <!-- Backdrop mờ khi mở terminal/bucket -->
     <div class="backdrop" id="backdrop" tabindex="-1"></div>
+
     <!-- Terminal (ẩn mặc định) -->
     <aside class="terminal" id="terminal" aria-label="macOS-styled Terminal" aria-hidden="true">
       <div class="terminal__topbar">
@@ -363,9 +463,42 @@
       </div>
     </aside>
 
+    <!-- Bucket List Panel (ẩn mặc định, trượt từ bên phải) -->
+    <aside class="bucket" id="bucketPanel" aria-label="Bucket List" aria-hidden="true">
+      <div class="bucket__topbar">
+        <div class="bucket__title">🎯 Bucket List</div>
+        <div class="bucket__spacer"></div>
+        <button class="bucket__close" id="closeBucket" title="Đóng (Esc)">×</button>
+      </div>
+
+      <div class="bucket__body">
+        <!-- Progress -->
+        <div class="progress">
+          <div class="progress__label"><span id="blDone">0</span>/<span id="blTotal">0</span> hoàn thành</div>
+          <div class="progress__bar"><div id="blBar"></div></div>
+        </div>
+
+        <!-- Form thêm mục -->
+        <form class="bl-form" id="blForm">
+          <input id="blTitle" type="text" placeholder="Việc muốn làm (vd: Leo Fansipan)" required />
+          <input id="blWhen" type="date" />
+          <button class="btn primary" type="submit">Thêm</button>
+        </form>
+
+        <!-- Bộ lọc đơn giản -->
+        <div class="bl-filters">
+          <button type="button" class="btn" data-filter="all">Tất cả</button>
+          <button type="button" class="btn" data-filter="todo">Chưa làm</button>
+          <button type="button" class="btn" data-filter="done">Hoàn thành</button>
+        </div>
+
+        <!-- Danh sách -->
+        <ul class="bl-list" id="blList" aria-live="polite"></ul>
+      </div>
+    </aside>
+
     <div class="container">
       <canvas id="pinkboard"></canvas>
-
       <div class="heart-text">
         <h1 id="daysCount">----</h1>
         <div id="surpriseText" style="display:none; font-size:1.7rem; font-family:'Press Start 2P', monospace; margin-top:18px; line-height:1.3; background: linear-gradient(45deg, #ea80b0, #fff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; text-shadow: 2px 2px 8px #ea80b044, 0 0 12px #fff6; text-align:center;">
@@ -374,10 +507,10 @@
           <div class="surprise-line" style="display:none;">BAO QUOC</div>
         </div>
       </div>
-
       <div class="buttons-container">
         <button class="btn primary" onclick="toggleTerminal(true)"> HÒM THƯ SỐ 1 </button>
         <button class="btn" onclick="createSurprise()">CÓ GÌ ĐÓ Ở ĐÂY?</button>
+        <button class="btn" onclick="toggleBucket(true)">BUCKET LIST</button>
       </div>
     </div>
   </div>
@@ -544,44 +677,6 @@
     }
   }
 
-  function showSurpriseText() {
-    const textEl = document.getElementById('surpriseText');
-    const lines = textEl.querySelectorAll('.surprise-line');
-    textEl.style.display = 'block';
-    lines.forEach(line => line.style.display = 'none');
-    let i = 0;
-    function showNext() {
-      if (i < lines.length) {
-        lines[i].style.display = 'block';
-        i++;
-        setTimeout(showNext, 600);
-      }
-    }
-    showNext();
-    setTimeout(() => {
-      textEl.style.display = 'none';
-      document.getElementById('daysCount').style.display = 'block';
-      lines.forEach(line => line.style.display = 'none');
-    }, 600 * lines.length + 1300);
-  }
-  function createSurprise(){
-    const pool=window.heartPool, canvas=window.heartCanvas, dpr=window.heartDpr();
-    const multiplier = isLowPerformance ? 0.7 : 1;
-    const particles = Math.floor(50 * multiplier);
-    
-    for(let angle=0; angle<Math.PI*2; angle+=Math.PI/8){
-      for(let i=0;i<particles;i++){
-        const pos=pointOnHeart(Math.PI - 2*Math.PI*Math.random());
-        const dir=new Point(Math.cos(angle)*settings.particles.velocity*0.8, Math.sin(angle)*settings.particles.velocity*0.8);
-        pool.add(canvas.width/dpr/2 + pos.x, canvas.height/dpr/2 - pos.y, dir.x, dir.y);
-      }
-    }
-    // Ẩn số ngày, hiện text từng dòng
-    const daysEl = document.getElementById('daysCount');
-    daysEl.style.display = 'none';
-    showSurpriseText();
-  }
-
   // Days counter
   const startDate=new Date('2025-07-20');
   const today=new Date();
@@ -604,24 +699,28 @@
     }else{
       terminal.classList.remove('open');
       terminal.setAttribute('aria-hidden','true');
-      backdrop.classList.remove('open');
+      // chỉ đóng backdrop nếu bucket cũng đóng
+      if(!bucketPanel.classList.contains('open')) backdrop.classList.remove('open');
     }
   }
   closeBtn.addEventListener('click', ()=>toggleTerminal(false));
   window.addEventListener('keydown', (e)=>{ if(e.key==='Escape') toggleTerminal(false); });
-  backdrop.addEventListener('click', ()=>toggleTerminal(false));
+  backdrop.addEventListener('click', ()=>{
+    if(terminal.classList.contains('open')) toggleTerminal(false);
+    if(bucketPanel.classList.contains('open')) toggleBucket(false);
+  });
   
   // Touch events for mobile
   let touchStartY = 0;
   backdrop.addEventListener('touchstart', (e) => {
     touchStartY = e.touches[0].clientY;
   });
-  
   backdrop.addEventListener('touchend', (e) => {
     const touchEndY = e.changedTouches[0].clientY;
     const diff = Math.abs(touchEndY - touchStartY);
     if (diff < 10) { // Only close if it's a tap, not a scroll
-      toggleTerminal(false);
+      if(terminal.classList.contains('open')) toggleTerminal(false);
+      if(bucketPanel.classList.contains('open')) toggleBucket(false);
     }
   });
 
@@ -639,12 +738,164 @@
     showNext();
   }
 
-  // expose nếu cần gọi ở HTML
+  // ===== Bucket List logic =====
+  const bucketPanel = document.getElementById('bucketPanel');
+  const bucketClose = document.getElementById('closeBucket');
+  const blList = document.getElementById('blList');
+  const blForm = document.getElementById('blForm');
+  const blTitle = document.getElementById('blTitle');
+  const blWhen = document.getElementById('blWhen');
+  const blDoneEl = document.getElementById('blDone');
+  const blTotalEl = document.getElementById('blTotal');
+  const blBar = document.getElementById('blBar');
+
+  let blFilter = 'all'; // all | todo | done
+  let bucketData = loadBucket();
+
+  function toggleBucket(open){
+    if(open){
+      bucketPanel.classList.add('open');
+      bucketPanel.setAttribute('aria-hidden','false');
+      backdrop.classList.add('open'); // tái dùng backdrop
+      renderBucket();
+    }else{
+      bucketPanel.classList.remove('open');
+      bucketPanel.setAttribute('aria-hidden','true');
+      // chỉ đóng backdrop nếu terminal cũng đóng
+      if(!terminal.classList.contains('open')) backdrop.classList.remove('open');
+    }
+  }
+  bucketClose.addEventListener('click', ()=>toggleBucket(false));
+  window.addEventListener('keydown', (e)=>{ if(e.key==='Escape') toggleBucket(false); });
+
+  // LocalStorage
+  function loadBucket(){
+    try{ return JSON.parse(localStorage.getItem('bucketList')||'[]'); }
+    catch{ return []; }
+  }
+  function saveBucket(){ localStorage.setItem('bucketList', JSON.stringify(bucketData)); }
+
+  // CRUD
+  function addItem(title, when){
+    const id = Date.now().toString(36);
+    bucketData.push({ id, title: title.trim(), when: when||'', done: false });
+    saveBucket(); renderBucket();
+  }
+  function toggleItem(id){
+    bucketData = bucketData.map(it => it.id===id ? {...it, done: !it.done} : it);
+    saveBucket(); renderBucket();
+  }
+  function deleteItem(id){
+    bucketData = bucketData.filter(it => it.id!==id);
+    saveBucket(); renderBucket();
+  }
+
+  // Render
+  function renderBucket(){
+    // filter
+    const items = bucketData.filter(function(it){
+      if(blFilter==='todo') return !it.done;
+      if(blFilter==='done') return it.done;
+      return true;
+    });
+
+    // list HTML
+    blList.innerHTML = items.map(function(it){
+      var whenText = it.when ? 'Mục tiêu: ' + formatDate(it.when) : '';
+      var html = '<li class="bl-item ' + (it.done ? 'done':'') + '">' +
+        '<input class="bl-item__check" type="checkbox" ' + (it.done?'checked':'') + ' aria-label="Hoàn thành" onclick="toggleItem(\'' + it.id + '\')">' +
+        '<div>' +
+          '<div class="bl-item__title">' + escapeHtml(it.title) + '</div>' +
+          (whenText ? '<div class="bl-item__meta">' + whenText + '</div>' : '') +
+        '</div>' +
+        '<button class="bl-item__del" onclick="deleteItem(\'' + it.id + '\')">Xóa</button>' +
+      '</li>';
+      return html;
+    }).join('');
+
+    // progress
+    var total = bucketData.length;
+    var done = bucketData.filter(function(it){return it.done;}).length;
+    blTotalEl.textContent = total;
+    blDoneEl.textContent = done;
+    var pct = total ? Math.round((done/total)*100) : 0;
+    blBar.style.width = pct + '%';
+    blBar.setAttribute('aria-valuenow', String(pct));
+  }
+
+  // Form submit
+  blForm.addEventListener('submit', (e)=>{
+    e.preventDefault();
+    if(!blTitle.value.trim()) return;
+    addItem(blTitle.value, blWhen.value);
+    blForm.reset();
+    blTitle.focus();
+  });
+
+  // Filters
+  document.querySelectorAll('.bl-filters .btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      blFilter = btn.getAttribute('data-filter');
+      renderBucket();
+    });
+  });
+
+  // Utils
+  function formatDate(v){
+    // v: yyyy-mm-dd -> dd/mm/yyyy
+    var parts = v.split('-');
+    return parts[2] + '/' + parts[1] + '/' + parts[0];
+  }
+  function escapeHtml(str){
+    return str.replace(/[&<>"']/g, function(m){
+      return {
+        '&':'&amp;',
+        '<':'&lt;',
+        '>':'&gt;',
+        '"':'&quot;',
+        "'":'&#39;'
+      }[m];
+    });
+  }
+
+  // Expose for inline onclick
+  window.toggleBucket = toggleBucket;
+  window.toggleItem = toggleItem;
+  window.deleteItem = deleteItem;
+
+  // Đảm bảo các hàm nút đều gán vào window để onclick hoạt động
   window.toggleTerminal = toggleTerminal;
-  
-  // Performance monitoring
-  if (isLowPerformance) {
-    console.log('Low performance mode enabled');
+  window.createSurprise = createSurprise;
+  window.toggleBucket = toggleBucket;
+
+  // (Tuỳ chọn) Seed ví dụ lần đầu:
+  if(bucketData.length === 0){
+    bucketData = [
+      {id:'ex1', title:'Leo Fansipan', when:'2026-06-01', done:false},
+      {id:'ex2', title:'Học lặn biển', when:'', done:false},
+      {id:'ex3', title:'Viết ebook 50 trang', when:'2025-12-31', done:true},
+    ];
+    saveBucket();
+  }
+
+  // Hiệu ứng bất ngờ cho nút "Có gì đó ở đây?"
+  function createSurprise() {
+    var surpriseText = document.getElementById('surpriseText');
+    var lines = surpriseText.querySelectorAll('.surprise-line');
+    surpriseText.style.display = 'block';
+    // Ẩn tất cả dòng trước
+    lines.forEach(function(line) { line.style.display = 'none'; });
+    // Hiện từng dòng với hiệu ứng typewriter
+    var i = 0;
+    function showNextLine() {
+      if (i < lines.length) {
+        lines[i].style.display = 'block';
+        createHeartExplosion(); // hiệu ứng trái tim nổ mỗi dòng
+        i++;
+        setTimeout(showNextLine, 900);
+      }
+    }
+    showNextLine();
   }
   </script>
 </body>
