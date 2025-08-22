@@ -20,6 +20,9 @@
       --shade3: #c1c7ce;
       --shade4: #e1e6ea;
       --accent: #b3ff00;
+      --panel: #0f1320;
+      --grid: rgba(255,255,255,.06);
+      --cell-size: calc(100% / 15);
     }
     html,body{height:100%}
     body{
@@ -206,6 +209,38 @@
       cursor:pointer;
       user-select:none;
     }
+
+    /* -------- Caro block -------- */
+    #caro-container{ display:none; margin-top:28px }
+    .caro-app{ background:var(--panel); border:1px solid rgba(255,255,255,.08); border-radius:14px; padding:14px }
+    .caro-header{ display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:6px }
+    .caro-title{ margin:0; font-size:clamp(18px,2.2vw,24px) }
+    .muted{ color:var(--muted) }
+
+    .controls{ display:flex; flex-wrap:wrap; gap:10px; align-items:center }
+    .controls label{ font-size:13px; color:var(--muted) }
+    .controls input[type=number], .controls select{ background:#0f1320; color:var(--fg); border:1px solid rgba(255,255,255,.14); border-radius:10px; padding:8px 10px; min-width:90px; outline:none }
+    .controls button{ background:var(--accent); color:#0b0b0b; border:none; border-radius:10px; padding:10px 14px; cursor:pointer; font-weight:800 }
+
+    .board-wrap{ display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap }
+
+    .status .pill{ display:inline-flex; align-items:center; gap:8px; border:1px solid rgba(255,255,255,.1); padding:6px 10px; border-radius:999px; background:#0f1320 }
+    .dot{ width:10px; height:10px; border-radius:999px; background:var(--accent) }
+
+    .board{ --n:15; --cell-size:36px; width:calc(var(--n) * var(--cell-size)); max-width:100vw; display:grid; grid-template-columns:repeat(var(--n), var(--cell-size)); grid-auto-rows:var(--cell-size); background:#0f1320; border:2px solid var(--grid); border-radius:12px; overflow:auto; position:relative; user-select:none; touch-action:manipulation }
+    .cell{ width:var(--cell-size); height:var(--cell-size); display:flex; align-items:center; justify-content:center; font-size:calc(var(--cell-size)*.60); font-weight:800; border-right:1px solid var(--grid); border-bottom:1px solid var(--grid) }
+    .cell.empty:hover{ background:rgba(255,255,255,.06); cursor:pointer }
+    .cell.x .mark{ color:#ff4d73; text-shadow:0 8px 24px rgba(255,77,115,.35) }
+    .cell.o .mark{ color:#6ee7ff; text-shadow:0 8px 24px rgba(110,231,255,.35) }
+    .cell .mark{ transform:translateY(2px) }
+    .cell.row-last{ border-bottom:none }
+
+    .banner{ position:absolute; inset:8px; display:flex; align-items:flex-start; justify-content:flex-end; pointer-events:none }
+    .badge{ background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.15); padding:8px 12px; border-radius:12px; font-weight:800 }
+    .win{ background:linear-gradient(0deg, rgba(255,209,102,.12), transparent); box-shadow:inset 0 0 0 2px rgba(255,209,102,.35) }
+
+    .help{ font-size:13px; color:var(--muted) }
+    .help code{ background:rgba(127,127,127,.15); padding:2px 6px; border-radius:6px }
   </style>
 </head>
 <body>
@@ -223,16 +258,42 @@
         <button class="btn" id="gameBtn">🎮 Chơi Caro</button>
       </div>
 
-      <div id="game-container" class="tic-tac-toe" aria-label="tic tac toe game" style="display:none;">
-        <div class="ttt-cell" id="cell-0" data-index="0"></div>
-        <div class="ttt-cell" id="cell-1" data-index="1"></div>
-        <div class="ttt-cell" id="cell-2" data-index="2"></div>
-        <div class="ttt-cell" id="cell-3" data-index="3"></div>
-        <div class="ttt-cell" id="cell-4" data-index="4"></div>
-        <div class="ttt-cell" id="cell-5" data-index="5"></div>
-        <div class="ttt-cell" id="cell-6" data-index="6"></div>
-        <div class="ttt-cell" id="cell-7" data-index="7"></div>
-        <div class="ttt-cell" id="cell-8" data-index="8"></div>
+      <!-- Caro -->
+      <div id="caro-container">
+        <div class="caro-app">
+          <header class="caro-header">
+            <div>
+              <h1 class="caro-title">🟩 Game Caro (Gomoku)</h1>
+              <div class="muted">HTML + CSS + JavaScript — chơi 2 người trên cùng máy</div>
+            </div>
+            <div class="controls">
+              <label for="size">Kích thước</label>
+              <input id="size" type="number" min="10" max="25" step="1" value="15" />
+              <label for="rule">Luật thắng</label>
+              <select id="rule">
+                <option value=">=5">≥ 5 liên tiếp</option>
+                <option value="==5">Đúng 5 (không được 6+)</option>
+              </select>
+              <button id="new">Ván mới</button>
+              <button id="undo" title="Ctrl+Z">Hoàn tác</button>
+            </div>
+          </header>
+
+          <div class="board-wrap">
+            <div class="status"><div class="pill"><span class="dot"></span> <span id="turnText">Lượt: X</span></div></div>
+            <div class="board" id="board" aria-label="Bàn cờ Caro" role="grid"></div>
+            <aside class="sidebar">
+              <div class="help">
+                <strong>Mẹo:</strong>
+                <ul>
+                  <li>Nhấp để đặt quân. <code>Hoàn tác</code> để rút lại nước vừa đi.</li>
+                  <li>Đổi <em>Kích thước</em> & <em>Luật thắng</em> rồi ấn <em>Ván mới</em>.</li>
+                  <li>Đúng 5 nghĩa là chuỗi thắng không được dài hơn 5 ô.</li>
+                </ul>
+              </div>
+            </aside>
+          </div>
+        </div>
       </div>
 
       <div class="terminal-line">$ NHẬP MÃ: <span id="code-input"></span><span class="caret" aria-hidden="true"></span></div>
@@ -248,7 +309,7 @@
     const submitBtn = document.getElementById('submitBtn');
     const hiddenInput = document.getElementById('hiddenInput');
     const gameBtn = document.getElementById('gameBtn');
-    const gameContainer = document.getElementById('game-container');
+    const caroContainer = document.getElementById('caro-container'); // Sửa lại tên biến đúng
     const secret = 'panda';
     let buffer = '';
     
@@ -404,11 +465,152 @@
       cell.addEventListener('click', handleCellClick);
     });
 
-    gameBtn.addEventListener('click', ()=>{
-      const show=gameContainer.style.display==='none';
-      gameContainer.style.display=show?'grid':'none';
-      if(show) resetBoard();
+    gameBtn.addEventListener('click', () => {
+      const show = caroContainer.style.display === 'none';
+      caroContainer.style.display = show ? 'block' : 'none';
+      if (show) initCaro();
     });
+
+    // Tích hợp game Caro
+    function initCaro(){
+      const boardEl = document.getElementById('board');
+      const sizeInput = document.getElementById('size');
+      const ruleSelect = document.getElementById('rule');
+      const newBtn = document.getElementById('new');
+      const undoBtn = document.getElementById('undo');
+      const turnText = document.getElementById('turnText');
+      let N = parseInt(sizeInput.value, 10) || 15;
+      let exactFive = false;
+      let grid = [];
+      let turn = 1;
+      let gameOver = false;
+      const history = [];
+      function clamp(v, min, max){ return Math.min(max, Math.max(min, v)); }
+      function updateTurnUI(){
+        const who = (turn === 1) ? 'X' : 'O';
+        turnText.textContent = `Lượt: ${who}`;
+        document.body.classList.toggle('turn-x', turn === 1);
+        document.body.classList.toggle('turn-o', turn === 2);
+      }
+      function getCell(r, c){
+        return boardEl.querySelector(`.cell[data-r="${r}"][data-c="${c}"]`);
+      }
+      function inBounds(r, c){ return r >= 0 && c >= 0 && r < N && c < N; }
+      function collectRun(r, c, dr, dc, player){
+        const cells = [[r, c]];
+        let rr = r - dr, cc = c - dc;
+        while (inBounds(rr, cc) && grid[rr][cc] === player){ cells.unshift([rr, cc]); rr -= dr; cc -= dc; }
+        const before = [rr, cc];
+        rr = r + dr; cc = c + dc;
+        while (inBounds(rr, cc) && grid[rr][cc] === player){ cells.push([rr, cc]); rr += dr; cc += dc; }
+        const after = [rr, cc];
+        return {cells, before, after};
+      }
+      function checkWin(r, c, player, exactFive){
+        const dirs = [[1,0],[0,1],[1,1],[1,-1]];
+        for (const [dr, dc] of dirs){
+          const {cells, before, after} = collectRun(r, c, dr, dc, player);
+          const len = cells.length;
+          if (!exactFive){
+            if (len >= 5) return cells;
+          } else {
+            const beforeOK = !(inBounds(...before) && grid[before[0]][before[1]] === player);
+            const afterOK = !(inBounds(...after) && grid[after[0]][after[1]] === player);
+            if (len === 5 && beforeOK && afterOK) return cells;
+          }
+        }
+        return null;
+      }
+      function showBanner(text){
+        const wrap = document.createElement('div');
+        wrap.className = 'banner';
+        const badge = document.createElement('div');
+        badge.className = 'badge';
+        badge.textContent = text;
+        wrap.appendChild(badge);
+        boardEl.appendChild(wrap);
+      }
+      function place(r, c){
+        if (gameOver) return;
+        if (grid[r][c] !== 0) return;
+        grid[r][c] = turn;
+        history.push({r, c, player: turn});
+        const cell = getCell(r, c);
+        cell.classList.remove('empty');
+        cell.classList.add(turn === 1 ? 'x' : 'o');
+        const span = document.createElement('span');
+        span.className = 'mark';
+        span.textContent = (turn === 1) ? '×' : '○';
+        cell.appendChild(span);
+        const winLine = checkWin(r, c, turn, exactFive);
+        if (winLine){
+          winLine.forEach(([rr, cc]) => getCell(rr, cc).classList.add('win'));
+          showBanner(`${turn === 1 ? 'X' : 'O'} thắng!`);
+          gameOver = true;
+          return;
+        }
+        turn = (turn === 1) ? 2 : 1;
+        updateTurnUI();
+      }
+      function undo(){
+        if (history.length === 0) return;
+        if (gameOver){
+          const banner = boardEl.querySelector('.banner');
+          if (banner) banner.remove();
+          boardEl.querySelectorAll('.win').forEach(el => el.classList.remove('win'));
+          gameOver = false;
+        }
+        const last = history.pop();
+        const {r, c, player} = last;
+        grid[r][c] = 0;
+        const cell = getCell(r, c);
+        cell.className = 'cell empty';
+        cell.innerHTML = '';
+        turn = player;
+        updateTurnUI();
+      }
+      function init(){
+        N = clamp(parseInt(sizeInput.value, 10) || 15, 10, 25);
+        exactFive = (ruleSelect.value === '==5');
+        boardEl.style.setProperty('--n', N);
+        grid = Array.from({length: N}, () => Array(N).fill(0));
+        turn = 1; gameOver = false; history.length = 0;
+        document.body.classList.remove('turn-o');
+        document.body.classList.add('turn-x');
+        boardEl.innerHTML = '';
+        for (let r = 0; r < N; r++){
+          for (let c = 0; c < N; c++){
+            const cell = document.createElement('div');
+            cell.className = 'cell empty';
+            cell.dataset.r = r; cell.dataset.c = c;
+            cell.setAttribute('role','gridcell');
+            cell.setAttribute('aria-label', `Ô ${r+1},${c+1}`);
+            boardEl.appendChild(cell);
+          }
+        }
+        const cells = boardEl.querySelectorAll('.cell');
+        for (let i = cells.length - N; i < cells.length; i++){
+          cells[i] && cells[i].classList.add('row-last');
+        }
+        updateTurnUI();
+      }
+      boardEl.addEventListener('click', (e) => {
+        const cell = e.target.closest('.cell');
+        if (!cell) return;
+        const r = parseInt(cell.dataset.r, 10);
+        const c = parseInt(cell.dataset.c, 10);
+        place(r, c);
+      });
+      newBtn.addEventListener('click', init);
+      undoBtn.addEventListener('click', undo);
+      window.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z'){
+          e.preventDefault();
+          undo();
+        }
+      });
+      init();
+    }
   </script>
 </body>
 </html>
